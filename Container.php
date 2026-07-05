@@ -35,7 +35,7 @@ class Container {
 	protected array $definitions = [];
 
 	/**
-	 * Resolved instances (cached).
+	 * Resolved shared instances.
 	 */
 	protected array $instances = [];
 
@@ -59,7 +59,7 @@ class Container {
 
 	/**
 	 * Checks whether the container already knows about the service:
-	 * it was either registered with set() or previously created and cached.
+	 * it was either registered with set() or previously created and stored.
 	 *
 	 * @param string $id Identifier of the entry to look for.
 	 */
@@ -70,10 +70,10 @@ class Container {
 	/**
 	 * Registers a service. The service may be an existing object,
 	 * a class name, or a factory (closure) that creates it.
-	 * Replacing an existing service clears all previously created caches.
+	 * Replacing an existing service removes its stored instance and reflection metadata.
 	 *
 	 * @param class-string                $id      Identifier of the entry to look for.
-	 * @param object|Closure|class-string $service Service definition or class name or factory.
+	 * @param object|Closure|class-string $service Service definition, class name, ready instance or factory.
 	 *
 	 * @throws InvalidArgumentException
 	 */
@@ -91,7 +91,7 @@ class Container {
 
 	/**
 	 * Loads a registered service or automatically creates the requested class.
-	 * Caches the resolved service for later calls.
+	 * Stores the resolved service as a shared instance for later calls.
 	 *
 	 * @template T of object
 	 * @param class-string<T> $id Identifier of the entry to look for.
@@ -111,7 +111,7 @@ class Container {
 
 	/**
 	 * Creates a class instance from a registered definition or class name.
-	 * Unlike get(), it does not add the result to the cache.
+	 * Unlike get(), it does not store the result as a shared instance.
 	 * Named parameters can be used to provide specific values for constructor arguments.
 	 *
 	 * @template T of object

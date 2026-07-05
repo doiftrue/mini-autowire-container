@@ -287,6 +287,6 @@ Limitations
 >
 > This container differs by:
 > 1. `set()` accepts only objects or class-strings (no primitives)
-> 2. `make()` — does not cache results. Supports runtime parameters
+> 2. `make()` — Supports runtime parameters
 > 3. Factory in `make()` — closure parameters are autowired (not just `$container`)
 > 4. Factory in `get()` — closure receives `$this` (the container)

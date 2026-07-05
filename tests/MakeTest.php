@@ -40,10 +40,10 @@ final class MakeTest extends TestCase {
 		self::assertInstanceOf( InterfaceImpl::class, $result );
 	}
 
-	public function test__does_not_cache_result(): void {
+	public function test__make_result_is_not_reused_by_get(): void {
 		$made = $this->container->make( SimpleClass::class );
 
-		// After make(), get() should still create its own singleton
+		// make() must not store its result as the shared instance used by get().
 		$got = $this->container->get( SimpleClass::class );
 
 		self::assertNotSame( $made, $got );

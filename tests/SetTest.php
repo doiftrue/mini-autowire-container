@@ -19,7 +19,7 @@ final class SetTest extends TestCase {
 	}
 
 	// ────────────────────────────────────────────────────────────────────
-	// Register: object / class-string / Closure
+	// Register
 	// ────────────────────────────────────────────────────────────────────
 
 	public function test__register_object(): void {
@@ -44,7 +44,29 @@ final class SetTest extends TestCase {
 	}
 
 	// ────────────────────────────────────────────────────────────────────
-	// Exception: on primitives (int, array, bool)
+	// Overwrite
+	// ────────────────────────────────────────────────────────────────────
+
+	public function test__overwrite_with_same_definition(): void {
+		$this->container->set( 'service', SimpleClass::class );
+		$first = $this->container->get( 'service' );
+
+		$this->container->set( 'service', SimpleClass::class );
+		$second = $this->container->get( 'service' );
+
+		self::assertNotSame( $first, $second );
+		self::assertEquals( $first, $second );
+	}
+
+	public function test__overwrite_with_different_definition(): void {
+		$this->container->set( 'service', new SimpleClass() );
+		$this->container->set( 'service', new stdClass() );
+
+		self::assertInstanceOf( stdClass::class, $this->container->get( 'service' ) );
+	}
+
+	// ────────────────────────────────────────────────────────────────────
+	// Exception
 	// ────────────────────────────────────────────────────────────────────
 
 	public function test__exception_on_primitive_int(): void {
@@ -65,25 +87,4 @@ final class SetTest extends TestCase {
 		$this->container->set( 'service', true );
 	}
 
-	// ────────────────────────────────────────────────────────────────────
-	// Overwrite: clears cached instance, replaces definition
-	// ────────────────────────────────────────────────────────────────────
-
-	public function test__overwrite_clears_cache(): void {
-		$this->container->set( SimpleClass::class, SimpleClass::class );
-		$first = $this->container->get( SimpleClass::class );
-
-		$this->container->set( SimpleClass::class, SimpleClass::class );
-		$second = $this->container->get( SimpleClass::class );
-
-		self::assertNotSame( $first, $second );
-		self::assertEquals( $first, $second );
-	}
-
-	public function test__overwrite_with_different_definition(): void {
-		$this->container->set( 'service', new SimpleClass() );
-		$this->container->set( 'service', new stdClass() );
-
-		self::assertInstanceOf( stdClass::class, $this->container->get( 'service' ) );
-	}
 }
