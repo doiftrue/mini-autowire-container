@@ -73,7 +73,7 @@ class Container {
 	/**
 	 * Registers a service. The service may be an existing object,
 	 * a class name, or a factory (closure) that creates it.
-	 * Replacing an existing service removes its stored instance and reflection metadata.
+	 * Replacing an existing service removes its stored instance.
 	 *
 	 * @param class-string                $id      Identifier of the entry to look for.
 	 * @param object|Closure|class-string $service Service definition, class name, ready instance or factory.
@@ -90,10 +90,7 @@ class Container {
 		}
 
 		$this->definitions[ $id ] = $service;
-		unset(
-			$this->instances[ $id ],
-			$this->reflection_cache[ $id ]
-		);
+		unset( $this->instances[ $id ] );
 	}
 
 	/**
