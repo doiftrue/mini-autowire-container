@@ -9,7 +9,7 @@ This container is intentionally small. It is designed for small projects, plugin
 
 It is not trying to replace Symfony DI, PHP-DI, Laravel Container, or other full-featured dependency injection containers. It is useful when you need simple autowiring without configuration files, compiled cache, service providers, tags, scopes, scalar parameter storage, or framework integration.
 
-The main idea is to keep application code close to common DI container concepts (PSR-11):
+The main idea is to provide a PSR-11-style API built around `get()` and `has()`:
 
 ```php
 $container->get( Service::class );
@@ -17,6 +17,8 @@ $container->has( Service::class );
 ```
 
 For larger projects, this makes migration to a bigger container easier.
+
+The container does not implement `Psr\Container\ContainerInterface` and does not depend on `psr/container`.
 
 
 ### Container API
@@ -111,7 +113,7 @@ var_dump( $a === $b ); // true
 
 ### get() – Scalar values
 
-Required scalar values cannot be resolved automatically – RuntimeException will be thrown.
+Required scalar values cannot be resolved automatically – `ContainerException` will be thrown.
 
 ```php
 final class Config {
@@ -120,7 +122,7 @@ final class Config {
 	) {}
 }
 
-$container->get( Config::class ); // RuntimeException
+$container->get( Config::class ); // ContainerException
 ```
 
 Use `make()` with named parameters:
@@ -248,7 +250,7 @@ This is useful for stateful objects, DTOs, handlers, commands, forms, and other 
 Named runtime parameters can be passed to `make()`.
 
 Class dependencies are still autowired automatically. Scalar values must be passed manually or have default values.
-Unknown parameter names throw a `RuntimeException` instead of being ignored.
+Unknown parameter names throw a `ContainerException` instead of being ignored.
 
 Such a call may also be treated as a factory that can be mocked in tests.
 
@@ -271,14 +273,14 @@ Comparison with other containers
 
 | Container              | Deps |     PSR-11 | Autowiring |           Shared services |   New instance method | Scalars | Config |
 |------------------------|-----:|-----------:|-----------:|--------------------------:|----------------------:|--------:|-------:|
-| Mini Container         |   no | compatible |        yes |                   `get()` |              `make()` | runtime |     no |
+| Mini Container         |   no |      style |        yes |                   `get()` |              `make()` | runtime |     no |
 | PHP-DI                 |  yes |        yes |        yes |                   `get()` |              `make()` |     yes |    yes |
 | Symfony DI             |  yes |        yes |        yes |                   `get()` |    factories/services |     yes |    yes |
 | Laravel Container      |  yes | partly/yes |        yes | `singleton(), instance()` |              `make()` |     yes |    yes |
 | Laminas ServiceManager |  yes |        yes |        yes |           shared services |             `build()` |     yes |    yes |
-| Pimple                 |  yes |         no |         no |          default behavior |           `factory()` |     yes |    yes |
 | League Container       |  yes |        yes |        yes |             `addShared()` | definitions/factories |     yes |    yes |
 | Yii DI Container       |  yes |         no |        yes |          `setSingleton()` |               `get()` |     yes |    yes |
+| Pimple                 |  yes |         no |         no |          default behavior |           `factory()` |     yes |    yes |
 | Nette DI               |  yes | no/adapter |        yes |        generated services |   generated factories |     yes |    yes |
 
 Best for:
@@ -298,7 +300,7 @@ Best for:
 Limitations
 -----------
 
-* No PSR-11 interface dependency included
+* PSR-11-style API without real implementing the PSR-11 interfaces
 * No compiled container
 * No service providers
 * No scopes

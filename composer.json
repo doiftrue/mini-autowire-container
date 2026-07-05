@@ -1,6 +1,6 @@
 {
     "name": "doiftrue/mini-autowire-container",
-    "description": "A tiny single-file PSR-11 compatible autowire DI container for PHP, with no dependencies.",
+    "description": "A tiny single-file PSR-11-style autowire DI container for PHP, with no dependencies.",
     "type": "library",
     "license": "MIT",
     "authors": [

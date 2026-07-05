@@ -1,7 +1,7 @@
 <?php // phpcs:ignoreFile
 /**
  * Single-file DI Container with autowiring for PHP applications.
- * PSR-11 compatible. No dependencies. Especially handy for WordPress plugins and themes.
+ * PSR-11-style API. No dependencies. Especially handy for WordPress plugins and themes.
  *
  * License: MIT License
  *
@@ -26,6 +26,9 @@ use Closure;
 use function array_key_exists;
 use function class_exists;
 use function is_string;
+
+class ContainerException extends RuntimeException {}
+class NotFoundException extends ContainerException {}
 
 class Container {
 
@@ -103,7 +106,8 @@ class Container {
 	 * @return T NOTE: Do not add a native return type. Declaring `: object` prevents PhpStorm
 	 *           from reliably inferring the concrete return type from `class-string<T>`.
 	 *
-	 * @throws RuntimeException Error while retrieving the entry. No entry was found for identifier.
+	 * @throws NotFoundException No entry was found for identifier.
+	 * @throws ContainerException Error while retrieving the entry.
 	 */
 	public function get( string $id ) {
 		if ( array_key_exists( $id, $this->instances ) ) {
@@ -133,7 +137,7 @@ class Container {
 	 *           from reliably inferring the concrete return type from `class-string<T>`.
 	 *
 	 * @throws ReflectionException
-	 * @throws RuntimeException
+	 * @throws ContainerException
 	 */
 	public function make( string $id, array $parameters = [] ) {
 		$this->start_resolution( $id );
@@ -146,7 +150,7 @@ class Container {
 			}
 
 			if( is_object( $definition ) ){
-				throw new RuntimeException(
+				throw new ContainerException(
 					"Service `$id` is registered as an instance and cannot be created with make()."
 				);
 			}
@@ -155,7 +159,7 @@ class Container {
 				return $this->resolve_class( $definition, $parameters );
 			}
 
-			throw new RuntimeException( "Definition `$id` could not be resolved because class not exist." );
+			throw new ContainerException( "Definition `$id` could not be resolved because class not exist." );
 		}
 		finally {
 			$this->finish_resolution( $id );
@@ -163,7 +167,8 @@ class Container {
 	}
 
 	/**
-	 * @throws RuntimeException
+	 * @throws ContainerException
+	 * @throws NotFoundException
 	 */
 	protected function resolve( string $id ): object {
 		if ( array_key_exists( $id, $this->definitions ) ) {
@@ -184,7 +189,7 @@ class Container {
 			return $this->resolve_class( $id );
 		}
 
-		throw new RuntimeException( "Service `$id` not found in the Container." );
+		throw new NotFoundException( "Service `$id` not found in the Container." );
 	}
 
 	/**
@@ -193,14 +198,14 @@ class Container {
 	 * @param array<string, mixed> $runtime_params  Runtime parameters by name.
 	 *
 	 * @throws ReflectionException
-	 * @throws RuntimeException
+	 * @throws ContainerException
 	 */
 	protected function invoke_factory( string $id, Closure $factory, array $runtime_params = [] ): object {
 		$reflection = new ReflectionFunction( $factory );
 		$service = $factory( ...$this->resolve_parameters( $reflection->getParameters(), $runtime_params ) );
 
 		if ( ! is_object( $service ) ) {
-			throw new RuntimeException( "Factory for service `$id` must return an object." );
+			throw new ContainerException( "Factory for service `$id` must return an object." );
 		}
 
 		return $service;
@@ -213,20 +218,20 @@ class Container {
 	 * @param class-string         $class
 	 * @param array<string, mixed> $runtime_params  Runtime constructor parameters by name.
 	 *
-	 * @throws RuntimeException
+	 * @throws ContainerException
 	 */
 	protected function resolve_class( string $class, array $runtime_params = [] ): object {
 		try {
 			$reflection = $this->reflection_cache[ $class ] ??= new ReflectionClass( $class );
 
 			if ( ! $reflection->isInstantiable() ) {
-				throw new RuntimeException( "Class `$class` is not instantiable." );
+				throw new ContainerException( "Class `$class` is not instantiable." );
 			}
 
 			$constructor = $reflection->getConstructor();
 			if ( ! $constructor ) {
 				if ( $runtime_params ) {
-					throw new RuntimeException( "Class `$class` has no constructor and does not accept runtime parameters." );
+					throw new ContainerException( "Class `$class` has no constructor and does not accept runtime parameters." );
 				}
 
 				return new $class();
@@ -236,7 +241,7 @@ class Container {
 			$resolved_params = $this->resolve_parameters( $params, $runtime_params );
 		}
 		catch ( ReflectionException $e ) {
-			throw new RuntimeException(
+			throw new ContainerException(
 				"Service `$class` could not be resolved due the reflection issue: `{$e->getMessage()}`"
 			);
 		}
@@ -251,7 +256,7 @@ class Container {
 	 * @param ReflectionParameter[] $params
 	 * @param array<string, mixed>  $runtime_params  Runtime parameters by name.
 	 *
-	 * @throws RuntimeException
+	 * @throws ContainerException
 	 * @throws ReflectionException
 	 */
 	protected function resolve_parameters( array $params, array $runtime_params = [] ): array {
@@ -274,13 +279,13 @@ class Container {
 	 * @param ReflectionParameter[] $params
 	 * @param array<string, mixed>  $runtime_params  Runtime parameters by name.
 	 *
-	 * @throws RuntimeException
+	 * @throws ContainerException
 	 */
 	protected function validate_parameters( array $params, array $runtime_params ): void {
 		$known_params = [];
 		foreach ( $params as $param ) {
 			if ( $param->isVariadic() ) {
-				throw new RuntimeException(
+				throw new ContainerException(
 					"Variadic parameter `{$param->getName()}` of `{$this->get_declared_in( $param )}` is not supported."
 				);
 			}
@@ -291,7 +296,7 @@ class Container {
 		$unknown_params = array_diff_key( $runtime_params, $known_params );
 		if ( $unknown_params ) {
 			$names = implode( '`, `', array_keys( $unknown_params ) );
-			throw new RuntimeException( "Unknown runtime parameter(s): `$names`." );
+			throw new ContainerException( "Unknown runtime parameter(s): `$names`." );
 		}
 	}
 
@@ -303,7 +308,8 @@ class Container {
 	 *
 	 * @return mixed|object
 	 *
-	 * @throws RuntimeException
+	 * @throws ContainerException
+	 * @throws NotFoundException
 	 * @throws ReflectionException
 	 */
 	protected function resolve_parameter( ReflectionParameter $param ) {
@@ -318,18 +324,18 @@ class Container {
 		}
 
 		$message = "Parameter `{$param->getName()}` of `{$this->get_declared_in( $param )}` not resolved.";
-		throw new RuntimeException( $message );
+		throw new ContainerException( $message );
 	}
 
 	/**
 	 * Marks an entry as currently being resolved and detects dependency cycles.
 	 *
-	 * @throws RuntimeException
+	 * @throws ContainerException
 	 */
 	protected function start_resolution( string $id ): void {
 		if ( isset( $this->resolving[ $id ] ) ) {
 			$chain = implode( ' → ', array_keys( $this->resolving ) ) . " → $id";
-			throw new RuntimeException( "Circular dependency detected: $chain" );
+			throw new ContainerException( "Circular dependency detected: $chain" );
 		}
 
 		$this->resolving[ $id ] = true;
