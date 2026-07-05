@@ -135,14 +135,7 @@ class Container {
 		$definition = $this->definitions[ $id ] ?? $id;
 
 		if( $definition instanceof Closure ){
-			$reflection = new ReflectionFunction( $definition );
-			$definition = $definition( ...$this->resolve_parameters( $reflection->getParameters(), $parameters ) );
-
-			if( is_object( $definition ) ){
-				return $definition;
-			}
-
-			throw new RuntimeException( "Factory for service `$id` must return an object." );
+			return $this->invoke_factory( $id, $definition, $parameters );
 		}
 
 		if( is_object( $definition ) ){
@@ -166,12 +159,7 @@ class Container {
 			$def = $this->definitions[ $id ];
 
 			if ( $def instanceof Closure ) {
-				$def = $def( $this );
-				if ( is_object( $def ) ) {
-					return $def;
-				}
-
-				throw new RuntimeException( "Factory for service `$id` must return an object." );
+				return $this->invoke_factory( $id, $def );
 			}
 
 			if ( is_string( $def ) && class_exists( $def ) ) {
@@ -186,6 +174,25 @@ class Container {
 		}
 
 		throw new RuntimeException( "Service `$id` not found in the Container." );
+	}
+
+	/**
+	 * Invokes a factory with autowired and explicitly provided parameters.
+	 *
+	 * @param array<string, mixed> $runtime_params  Runtime parameters by name.
+	 *
+	 * @throws ReflectionException
+	 * @throws RuntimeException
+	 */
+	protected function invoke_factory( string $id, Closure $factory, array $runtime_params = [] ): object {
+		$reflection = new ReflectionFunction( $factory );
+		$service = $factory( ...$this->resolve_parameters( $reflection->getParameters(), $runtime_params ) );
+
+		if ( ! is_object( $service ) ) {
+			throw new RuntimeException( "Factory for service `$id` must return an object." );
+		}
+
+		return $service;
 	}
 
 	/**

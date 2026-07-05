@@ -51,6 +51,10 @@ final class GetTest extends TestCase {
 		self::assertInstanceOf( SimpleClass::class, $this->container->get( 'service' ) );
 	}
 
+	// ────────────────────────────────────────────────────────────────────
+	// Factory
+	// ────────────────────────────────────────────────────────────────────
+
 	public function test__factory_closure(): void {
 		$this->container->set( 'service', function () {
 			return new stdClass();
@@ -70,6 +74,18 @@ final class GetTest extends TestCase {
 		$result = $this->container->get( 'service' );
 
 		self::assertInstanceOf( SimpleClass::class, $result->dep );
+	}
+
+	public function test__factory_with_autowired_dependency(): void {
+		$this->container->set( 'service', function ( SimpleClass $simple ) {
+			$obj = new stdClass();
+			$obj->simple = $simple;
+			return $obj;
+		} );
+
+		$result = $this->container->get( 'service' );
+
+		self::assertSame( $this->container->get( SimpleClass::class ), $result->simple );
 	}
 
 	public function test__unregistered_class_auto_resolve(): void {

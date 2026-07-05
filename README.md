@@ -183,14 +183,35 @@ $logger = $container->get( Logger_Interface::class );
 ### set() – Register a factory
 
 Factories must return an object.
+
 ```php
-$container->set( Client::class, static function (): Client {
+$container->set( Client::class, static function () {
 	return new Client( 'https://example.com' );
 } );
 
 $client = $container->get( Client::class );
 ```
 
+Factory parameters are autowired for both `get()` and `make()`:
+
+```php
+$container->set( Mailer::class, static function ( Logger $logger ) {
+	return new Mailer( $logger );
+} );
+
+$shared_mailer = $container->get( Mailer::class );
+$fresh_mailer = $container->make( Mailer::class );
+```
+
+Type-hint `Container` in factory parameters to receive the container for factory:
+
+```php
+$container->set( Plugin::class, static function ( Container $container ) {
+	return new Plugin( $container->get( Config::class ) );
+} );
+
+$plugin = $container->get( Plugin::class );
+```
 
 make()
 ------
@@ -288,5 +309,4 @@ Limitations
 > This container differs by:
 > 1. `set()` accepts only objects or class-strings (no primitives)
 > 2. `make()` — Supports runtime parameters
-> 3. Factory in `make()` — closure parameters are autowired (not just `$container`)
-> 4. Factory in `get()` — closure receives `$this` (the container)
+> 3. Factory parameters in `get()` and `make()` are autowired consistently
