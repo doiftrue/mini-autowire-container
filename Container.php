@@ -59,12 +59,15 @@ class Container {
 
 	/**
 	 * Checks whether the container already knows about the service:
-	 * it was either registered with set() or previously created and stored.
+	 * it was registered with set(), previously created and stored,
+	 * or is an existing class that can be resolved automatically.
 	 *
 	 * @param string $id Identifier of the entry to look for.
 	 */
 	public function has( string $id ): bool {
-		return array_key_exists( $id, $this->instances ) || array_key_exists( $id, $this->definitions );
+		return array_key_exists( $id, $this->instances )
+			|| array_key_exists( $id, $this->definitions )
+			|| class_exists( $id ); // TODO: investigate deeper is this correct because not any class can be instantinated with get()
 	}
 
 	/**
@@ -155,23 +158,23 @@ class Container {
 	 * @throws RuntimeException
 	 */
 	protected function resolve( string $id ): object {
-		if ( $this->has( $id ) ) {
-			$service = $this->definitions[ $id ];
+		if ( array_key_exists( $id, $this->definitions ) ) {
+			$def = $this->definitions[ $id ];
 
-			if ( $service instanceof Closure ) {
-				$service = $service( $this );
-				if ( is_object( $service ) ) {
-					return $service;
+			if ( $def instanceof Closure ) {
+				$def = $def( $this );
+				if ( is_object( $def ) ) {
+					return $def;
 				}
 
 				throw new RuntimeException( "Factory for service `$id` must return an object." );
 			}
 
-			if ( is_string( $service ) && class_exists( $service ) ) {
-				return $this->resolve_class( $service );
+			if ( is_string( $def ) && class_exists( $def ) ) {
+				return $this->resolve_class( $def );
 			}
 
-			return $service;
+			return $def;
 		}
 
 		if ( class_exists( $id ) ) {

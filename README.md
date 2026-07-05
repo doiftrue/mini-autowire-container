@@ -144,10 +144,10 @@ $config = $container->get( Config::class ); // no error
 
 has()
 -----
-Checks whether the service was registered or already resolved.
+Checks whether the service was registered, already resolved, or can be autowired as an existing class.
 
 ```php
-$container->has( Service::class ); // true if registered or resolved
+$container->has( Service::class ); // true if registered, resolved, or an existing class
 $container->has( 'Unknown' );      // false
 ```
 

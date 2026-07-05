@@ -13,6 +13,7 @@ use Kama\MiniContainer\Tests\Fixtures\SimpleClass;
  *
  * - Registered service → true
  * - Unregistered → false
+ * - Existing autowireable class before get() → true
  * - After auto-resolve via get() → true
  * - Container itself → true
  */
@@ -32,6 +33,10 @@ final class HasTest extends TestCase {
 
 	public function test__unregistered_service(): void {
 		self::assertFalse( $this->container->has( 'not-exist' ) );
+	}
+
+	public function test__existing_class_before_get(): void {
+		self::assertTrue( $this->container->has( SimpleClass::class ) );
 	}
 
 	public function test__after_get_unregistered_class(): void {
