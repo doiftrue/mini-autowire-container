@@ -113,7 +113,8 @@ add_action( 'plugins_loaded', function () use ( $container ) {
 
 has()
 -----
-Checks whether the service was registered, already resolved, or can be autowired as an existing class.
+Checks whether the service was registered, already resolved, or can be autowired. For an unregistered
+class, its constructor and complete dependency graph must be resolvable by the container.
 
 API:
 ```php
@@ -122,7 +123,7 @@ $container->has( class-string $id ): bool;
 
 Usage:
 ```php
-$container->has( Service::class ); // true if registered, resolved, or an existing class
+$container->has( Service::class ); // true if registered, resolved, or autowireable
 $container->has( 'Unknown' );      // false
 ```
 

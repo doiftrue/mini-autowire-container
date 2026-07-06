@@ -10,7 +10,7 @@
  * Source: https://github.com/doiftrue/litewire-di
  * Original Idea: Andrei Pisarevskii (https://github.com/renakdup/simple-dic)
  *
- * Version: 1.1.1
+ * Version: 1.2.0
  */
 
 namespace Kama\LiteWireDI;
@@ -37,14 +37,14 @@ class Container {
 	/**
 	 * Service definitions (creation rules).
 	 *
-	 * @var array<string, object|Closure|class-string>
+	 * @var array<class-string, object|Closure|class-string>
 	 */
 	protected array $definitions = [];
 
 	/**
 	 * Resolved shared instances.
 	 *
-	 * @var array<string, object>
+	 * @var array<class-string, object>
 	 */
 	protected array $instances = [];
 
@@ -58,7 +58,7 @@ class Container {
 	/**
 	 * Entry IDs currently being resolved (cycle detection).
 	 *
-	 * @var array<string, true>
+	 * @var array<class-string, true>
 	 */
 	protected array $resolving = [];
 
@@ -78,9 +78,9 @@ class Container {
 	 * @param string $id Identifier of the entry to look for.
 	 */
 	public function has( string $id ): bool {
-		return array_key_exists( $id, $this->instances )
-			|| array_key_exists( $id, $this->definitions )
-			|| class_exists( $id ); // TODO: investigate deeper is this correct because not any class can be instantinated with get()
+		return isset( $this->instances[ $id ] )
+			|| isset( $this->definitions[ $id ] )
+			|| ( class_exists( $id ) && $this->can_resolve_class( $id ) );
 	}
 
 	/**
@@ -88,7 +88,7 @@ class Container {
 	 * a class name, or a factory (closure) that creates it.
 	 * Replacing an existing service removes its stored instance.
 	 *
-	 * @param string                      $id      Identifier of the entry to look for.
+	 * @param class-string                $id      Identifier of the entry to look for.
 	 * @param object|Closure|class-string $service Service definition, class name, ready instance or factory.
 	 *
 	 * @phpstan-param mixed $service Runtime validation intentionally accepts an unchecked input.
@@ -130,21 +130,18 @@ class Container {
 			throw new NotFoundException( "Service ID `$id` must be an existing class or interface." );
 		}
 
-		if ( array_key_exists( $id, $this->instances ) ) {
-			/** @var TService $instance */
-			$instance = $this->instances[ $id ];
-			return $instance;
+		if ( isset( $this->instances[ $id ] ) ) {
+			/** @var TService */
+			return $this->instances[ $id ];
 		}
 
-		$this->start_resolution( $id );
-
+		$this->begin_resolving( $id );
 		try {
-			/** @var TService $instance */
-			$instance = $this->resolve( $id );
-			return $this->instances[ $id ] = $instance;
+			/** @var TService */
+			return $this->instances[ $id ] = $this->resolve( $id );
 		}
 		finally {
-			$this->finish_resolution( $id );
+			$this->end_resolving( $id );
 		}
 	}
 
@@ -168,33 +165,32 @@ class Container {
 			throw new NotFoundException( "Service ID `$id` must be an existing class or interface." );
 		}
 
-		$this->start_resolution( $id );
-
+		$this->begin_resolving( $id );
 		try {
-			$definition = $this->definitions[ $id ] ?? $id;
+			$def = $this->definitions[ $id ] ?? $id;
 
-			if( $definition instanceof Closure ){
+			if( $def instanceof Closure ){
 				/** @var TService $instance */
-				$instance = $this->invoke_factory( $id, $definition, $parameters );
+				$instance = $this->invoke_factory( $id, $def, $parameters );
 				return $instance;
 			}
 
-			if( is_object( $definition ) ){
+			if( is_object( $def ) ){
 				throw new ContainerException(
 					"Service `$id` is registered as an instance and cannot be created with make()."
 				);
 			}
 
-			if( class_exists( $definition ) ){
+			if( class_exists( $def ) ){
 				/** @var TService $instance */
-				$instance = $this->resolve_class( $definition, $parameters );
+				$instance = $this->resolve_class( $def, $parameters );
 				return $instance;
 			}
 
 			throw new ContainerException( "Definition `$id` could not be resolved because class not exist." );
 		}
 		finally {
-			$this->finish_resolution( $id );
+			$this->end_resolving( $id );
 		}
 	}
 
@@ -203,9 +199,8 @@ class Container {
 	 * @throws NotFoundException
 	 */
 	protected function resolve( string $id ): object {
-		if ( array_key_exists( $id, $this->definitions ) ) {
-			$def = $this->definitions[ $id ];
-
+		$def = $this->definitions[ $id ] ?? null;
+		if ( $def ) {
 			if ( $def instanceof Closure ) {
 				return $this->invoke_factory( $id, $def );
 			}
@@ -351,11 +346,8 @@ class Container {
 	 * @throws ReflectionException
 	 */
 	protected function resolve_parameter( ReflectionParameter $param ) {
-		$type = $param->getType();
-
-		if ( $type instanceof ReflectionNamedType && ! $type->isBuiltin() ) {
-			/** @var class-string $dependency */
-			$dependency = $type->getName();
+		$dependency = $this->get_parameter_class( $param );
+		if ( $dependency ) {
 			return $this->get( $dependency );
 		}
 
@@ -368,11 +360,83 @@ class Container {
 	}
 
 	/**
-	 * Marks an entry as currently being resolved and detects dependency cycles.
+	 * @return class-string|null
+	 */
+	protected function get_parameter_class( ReflectionParameter $param ): ?string {
+		$type = $param->getType();
+
+		if ( $type instanceof ReflectionNamedType && ! $type->isBuiltin() ) {
+			/** @var class-string */
+			return $type->getName();
+		}
+
+		return null;
+	}
+
+	/**
+	 * Checks whether a class and its constructor dependency graph can be autowired.
+	 * Does not instantiate classes or invoke registered factories.
+	 *
+	 * @param class-string              $class
+	 * @param array<class-string, true> $checking Classes currently being inspected.
+	 */
+	protected function can_resolve_class( string $class, array $checking = [] ): bool {
+		if ( isset( $checking[ $class ] ) ) {
+			return false;
+		}
+
+		$checking[ $class ] = true;
+
+		try {
+			$reflection = $this->reflection_cache[ $class ] ??= new ReflectionClass( $class );
+
+			if ( ! $reflection->isInstantiable() ) {
+				return false;
+			}
+
+			$constructor = $reflection->getConstructor();
+			if ( ! $constructor ) {
+				return true;
+			}
+
+			foreach ( $constructor->getParameters() as $param ) {
+				if ( $param->isVariadic() ) {
+					return false;
+				}
+
+				$dependency = $this->get_parameter_class( $param );
+				if ( $dependency ) {
+					if (
+						! isset( $this->instances[ $dependency ] )
+						&& ! isset( $this->definitions[ $dependency ] )
+						&& ( ! class_exists( $dependency ) || ! $this->can_resolve_class( $dependency, $checking ) )
+					) {
+						return false;
+					}
+
+					continue;
+				}
+
+				if ( ! $param->isOptional() ) {
+					return false;
+				}
+			}
+		}
+		catch ( ReflectionException $e ) {
+			return false;
+		}
+
+		return true;
+	}
+
+	/**
+	 * Starts resolving an entry to check circular dependencies.
+	 *
+	 * @param class-string $id
 	 *
 	 * @throws ContainerException
 	 */
-	protected function start_resolution( string $id ): void {
+	protected function begin_resolving( string $id ): void {
 		if ( isset( $this->resolving[ $id ] ) ) {
 			$chain = implode( ' → ', array_keys( $this->resolving ) ) . " → $id";
 			throw new ContainerException( "Circular dependency detected: $chain" );
@@ -381,23 +445,14 @@ class Container {
 		$this->resolving[ $id ] = true;
 	}
 
-	/**
-	 * Marks an entry as fully resolved or failed.
-	 */
-	protected function finish_resolution( string $id ): void {
+	protected function end_resolving( string $id ): void {
 		unset( $this->resolving[ $id ] );
 	}
 
-	/**
-	 * Checks whether an ID is an existing class or interface name.
-	 */
 	protected function is_valid_id( string $id ): bool {
 		return class_exists( $id ) || interface_exists( $id );
 	}
 
-	/**
-	 * Returns the class or function name that declares a parameter.
-	 */
 	protected function get_declared_in( ReflectionParameter $param ): string {
 		return $param->getDeclaringClass()
 			? $param->getDeclaringClass()->getName()

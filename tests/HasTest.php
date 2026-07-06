@@ -6,7 +6,14 @@ namespace Kama\LiteWireDI\Tests;
 
 use PHPUnit\Framework\TestCase;
 use Kama\LiteWireDI\Container;
+use Kama\LiteWireDI\Tests\Fixtures\AbstractService;
+use Kama\LiteWireDI\Tests\Fixtures\ClassCyclicA;
+use Kama\LiteWireDI\Tests\Fixtures\ClassNeedsInterface;
+use Kama\LiteWireDI\Tests\Fixtures\ClassPrivateConstructor;
+use Kama\LiteWireDI\Tests\Fixtures\ClassWithScalarRequired;
+use Kama\LiteWireDI\Tests\Fixtures\InterfaceImpl;
 use Kama\LiteWireDI\Tests\Fixtures\SimpleClass;
+use Kama\LiteWireDI\Tests\Fixtures\SomeInterface;
 
 /**
  * Tests for Container::has()
@@ -48,4 +55,35 @@ final class HasTest extends TestCase {
 	public function test__container_itself(): void {
 		self::assertTrue( $this->container->has( Container::class ) );
 	}
+
+	// ────────────────────────────────────────────────────────────────────
+	// can_resolve_class
+	// ────────────────────────────────────────────────────────────────────
+
+	public function test__abstract_class_is_not_autowireable(): void {
+		self::assertFalse( $this->container->has( AbstractService::class ) );
+	}
+
+	public function test__class_with_private_constructor_is_not_autowireable(): void {
+		self::assertFalse( $this->container->has( ClassPrivateConstructor::class ) );
+	}
+
+	public function test__class_with_required_scalar_is_not_autowireable(): void {
+		self::assertFalse( $this->container->has( ClassWithScalarRequired::class ) );
+	}
+
+	public function test__class_with_unbound_interface_is_not_autowireable(): void {
+		self::assertFalse( $this->container->has( ClassNeedsInterface::class ) );
+	}
+
+	public function test__class_with_bound_interface_is_autowireable(): void {
+		$this->container->set( SomeInterface::class, InterfaceImpl::class );
+
+		self::assertTrue( $this->container->has( ClassNeedsInterface::class ) );
+	}
+
+	public function test__class_with_circular_dependencies_is_not_autowireable(): void {
+		self::assertFalse( $this->container->has( ClassCyclicA::class ) );
+	}
+
 }

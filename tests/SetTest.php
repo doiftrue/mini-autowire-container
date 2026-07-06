@@ -98,7 +98,7 @@ final class SetTest extends TestCase {
 		$this->expectException( InvalidArgumentException::class );
 		$this->expectExceptionMessageIsOrContains( 'must be an existing class or interface' );
 
-		$this->container->set( 'service', SimpleClass::class );
+		$this->container->set( 'service', SimpleClass::class ); // @phpstan-ignore argument.type
 	}
 
 }
