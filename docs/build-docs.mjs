@@ -12,8 +12,8 @@ const endMarker = '<!-- DOCS:END -->';
 
 const sources = [
 	{ file: 'README.md', type: 'overview' },
-	{ file: 'DOC/config-usage-example.md', type: 'guide', title: 'Configuration', id: 'configuration' },
-	{ file: 'DOC/wordpress-plugin.md', type: 'guide', title: 'WordPress plugin', id: 'wordpress-plugin' },
+	{ file: 'docs/content/config-usage-example.md', type: 'guide', title: 'Configuration', id: 'configuration' },
+	{ file: 'docs/content/wordpress-plugin.md', type: 'guide', title: 'WordPress plugin', id: 'wordpress-plugin' },
 ];
 
 const usedIds = new Map();
@@ -50,8 +50,8 @@ function inline( value ) {
 	text = text.replace( /!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" loading="lazy">' );
 	text = text.replace( /\[([^\]]+)\]\(([^)]+)\)/g, ( match, label, href ) => {
 		let url = href;
-		if ( href === 'docs/config-usage-example.md' ) url = '#configuration';
-		if ( href === 'docs/wordpress-plugin.md' ) url = '#wordpress-plugin';
+		if ( href === 'docs/content/config-usage-example.md' ) url = '#configuration';
+		if ( href === 'docs/content/wordpress-plugin.md' ) url = '#wordpress-plugin';
 		if ( href === '../Container.php' || href === 'Container.php' ) url = 'https://github.com/doiftrue/litewire-di/blob/main/Container.php';
 		if ( href.startsWith( '#' ) ) url = href.toLowerCase().replace( /[^#a-z0-9-]/g, '-' );
 		if ( ! /^(#|https?:\/\/|\/\/)/.test( url ) ) {

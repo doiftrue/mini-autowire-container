@@ -175,7 +175,7 @@ $container-&gt;has( Service::class );</code></pre></div>
 </ul>
 <p>Partially supported features:</p>
 <ul>
-<li>Services can receive configuration through factories, runtime parameters, or a registered configuration object, but the container does not have a separate configuration array. See <a href="https://github.com/doiftrue/litewire-di/blob/main/DOC/config-usage-example.md" target="_blank" rel="noreferrer">Passing configuration to services</a>.</li>
+<li>Services can receive configuration through factories, runtime parameters, or a registered configuration object, but the container does not have a separate configuration array. See <a href="#configuration">Passing configuration to services</a>.</li>
 <li>Invokable objects can be wrapped in a closure, but objects with <code>__invoke()</code> are not treated as factories automatically.</li>
 <li>The container uses normal PHP code for configuration. It does not provide attributes or a special configuration language.</li>
 <li>CI generates a test coverage report for <code>Container.php</code>; the badge remains static.</li>
@@ -229,7 +229,7 @@ add_action( 'plugins_loaded', function () use ( $container ) {
 } );</code></pre></div>
 <p>More examples:</p>
 <ul>
-<li><a href="https://github.com/doiftrue/litewire-di/blob/main/DOC/config-usage-example.md" target="_blank" rel="noreferrer">Passing configuration to services</a></li>
+<li><a href="#configuration">Passing configuration to services</a></li>
 <li><a href="https://github.com/doiftrue/litewire-di/blob/main/DOC/wordpress-plugin.md" target="_blank" rel="noreferrer">Complex WordPress plugin example</a></li>
 </ul>
 <h3 id="has">has()<a class="heading-anchor" href="#has" aria-label="Link to this section">#</a></h3>
@@ -432,7 +432,7 @@ $mailer = $container-&gt;make( Mailer::class, [
 <li>Circular dependencies are detected and reported with the resolution chain.</li>
 <li>Invalid or unsupported definitions and parameters fail with explicit exceptions.</li>
 </ol></section>
-<section class="doc-source doc-guide" data-doc-source="DOC/config-usage-example.md"><header class="guide-header"><p class="section-label">Extended guide</p><h2 id="configuration">Configuration<a class="heading-anchor" href="#configuration" aria-label="Link to this guide">#</a></h2><a class="source-link" href="https://github.com/doiftrue/litewire-di/blob/main/DOC/config-usage-example.md" target="_blank" rel="noreferrer">View Markdown source ↗</a></header><p>Configuration is a set of values that changes how an application works without changing its code.</p>
+<section class="doc-source doc-guide" data-doc-source="docs/content/config-usage-example.md"><header class="guide-header"><p class="section-label">Extended guide</p><h2 id="configuration">Configuration<a class="heading-anchor" href="#configuration" aria-label="Link to this guide">#</a></h2><a class="source-link" href="https://github.com/doiftrue/litewire-di/blob/main/docs/content/config-usage-example.md" target="_blank" rel="noreferrer">View Markdown source ↗</a></header><p>Configuration is a set of values that changes how an application works without changing its code.</p>
 <p>Configuration helps to:</p>
 <ul>
 <li>keep changeable settings separate from application logic;</li>
@@ -637,7 +637,7 @@ $some_service = $app-&gt;make( SomeService::class );</code></pre></div>
 <p>They create the same <code>SomeService</code> with the same settings. PHP-DI stores individual values and injects them directly. LiteWire DI stores one <code>AppConfig</code> object and uses a factory to pass its values to the service.</p>
 <p>The container features are also not equivalent. PHP-DI stores scalar entries and can reference, combine, and override definitions. LiteWire DI only stores the finished <code>AppConfig</code> object. Loading, combining, validating, or overriding the original values remains application code.</p>
 <p>For a small application, one <code>AppConfig</code> object is often enough. If it becomes too large, split it into focused objects such as <code>DatabaseConfig</code>, <code>ApiConfig</code>, and <code>CacheConfig</code> and register each object in the same way.</p></section>
-<section class="doc-source doc-guide" data-doc-source="DOC/wordpress-plugin.md"><header class="guide-header"><p class="section-label">Extended guide</p><h2 id="wordpress-plugin">WordPress plugin<a class="heading-anchor" href="#wordpress-plugin" aria-label="Link to this guide">#</a></h2><a class="source-link" href="https://github.com/doiftrue/litewire-di/blob/main/DOC/wordpress-plugin.md" target="_blank" rel="noreferrer">View Markdown source ↗</a></header><p>This example shows a small plugin with an admin settings page and an admin notice. It uses a container to connect the plugin classes.</p>
+<section class="doc-source doc-guide" data-doc-source="docs/content/wordpress-plugin.md"><header class="guide-header"><p class="section-label">Extended guide</p><h2 id="wordpress-plugin">WordPress plugin<a class="heading-anchor" href="#wordpress-plugin" aria-label="Link to this guide">#</a></h2><a class="source-link" href="https://github.com/doiftrue/litewire-di/blob/main/docs/content/wordpress-plugin.md" target="_blank" rel="noreferrer">View Markdown source ↗</a></header><p>This example shows a small plugin with an admin settings page and an admin notice. It uses a container to connect the plugin classes.</p>
 <p>The example is intentionally simple. It works as a useful starting structure, not as a complete production plugin.</p>
 <h3 id="why-use-a-container-in-a-plugin">Why use a container in a plugin?<a class="heading-anchor" href="#why-use-a-container-in-a-plugin" aria-label="Link to this section">#</a></h3>
 <p>A WordPress plugin often starts with functions in one file. Later it gets admin pages, REST routes, repositories, API clients, and background jobs. Creating every object by hand then becomes repetitive.</p>
@@ -882,15 +882,10 @@ namespace Example\MyPlugin;
 
 final class Plugin {
 
-	private SettingsPage $settings_page;
-	private AdminNotice $admin_notice;
-
 	public function __construct(
-		SettingsPage $settings_page,
-		AdminNotice $admin_notice
+		private readonly SettingsPage $settings_page,
+		private readonly AdminNotice $admin_notice
 	) {
-		$this-&gt;settings_page = $settings_page;
-		$this-&gt;admin_notice = $admin_notice;
 	}
 
 	public function boot(): void {
@@ -908,9 +903,10 @@ final class Plugin {
     └── PluginConfig (same shared object)</code></pre></div>
 <h3 id="how-to-add-another-service">How to add another service<a class="heading-anchor" href="#how-to-add-another-service" aria-label="Link to this section">#</a></h3>
 <p>For a concrete class, add it to a constructor. No bootstrap change is needed:</p>
-<div class="code-block"><div class="code-label"><span>php</span><button class="copy-code" type="button">Copy</button></div><pre><code class="language-php">public function __construct( PluginConfig $config, MessageRepository $messages ) {
-	$this-&gt;config = $config;
-	$this-&gt;messages = $messages;
+<div class="code-block"><div class="code-label"><span>php</span><button class="copy-code" type="button">Copy</button></div><pre><code class="language-php">public function __construct(
+	private readonly PluginConfig $config,
+	private readonly MessageRepository $messages
+) {
 }</code></pre></div>
 <p>Register something only when LiteWire DI cannot decide how to create it:</p>
 <ul>
@@ -935,8 +931,8 @@ $page = new SettingsPage( $config, $logger );</code></pre></div>
 				<button class="sidebar-close" type="button" aria-label="Close documentation navigation">×</button>
 				<nav class="document-tabs" aria-label="Documentation pages">
 					<a class="is-active" href="#litewire-di-container" data-document="README.md"><span>01</span>Overview</a>
-					<a href="#configuration" data-document="DOC/config-usage-example.md"><span>02</span>Configuration</a>
-					<a href="#wordpress-plugin" data-document="DOC/wordpress-plugin.md"><span>03</span>WordPress plugin</a>
+					<a href="#configuration" data-document="docs/content/config-usage-example.md"><span>02</span>Configuration</a>
+					<a href="#wordpress-plugin" data-document="docs/content/wordpress-plugin.md"><span>03</span>WordPress plugin</a>
 				</nav>
 				<div class="page-toc-sections">
 					<p>On this page</p>

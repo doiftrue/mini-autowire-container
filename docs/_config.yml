@@ -1,0 +1,17 @@
+# Site title. Available in templates as site.title.
+# title: Litewire DI
+
+# Short site description. Used by themes and SEO tags.
+# description: Lightweight dependency injection container for PHP
+
+# Base GitHub Pages URL without repository path.
+# url: "https://doiftrue.github.io"
+
+# Repository path in the URL. For project pages, usually "/repository-name".
+# baseurl: "/litewire-di"
+
+# theme: jekyll-theme-primer
+
+exclude:
+  - content
+  - build-docs.mjs

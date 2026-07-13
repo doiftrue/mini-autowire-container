@@ -3,6 +3,7 @@
 ![PHP 7.4 and 8.x](https://img.shields.io/badge/PHP-7.4%20%7C%208.x-777bb4.svg)
 ![Dependencies: none](https://img.shields.io/badge/dependencies-none-green.svg)
 ![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)
+[![Last CI](https://github.com/doiftrue/litewire-di/actions/workflows/ci.yml/badge.svg)](https://github.com/doiftrue/litewire-di/actions/workflows/ci.yml)
 
 LiteWire DI Container
 =====================
@@ -84,7 +85,7 @@ Features
 
 Partially supported features:
 
-- Services can receive configuration through factories, runtime parameters, or a registered configuration object, but the container does not have a separate configuration array. See [Passing configuration to services](DOC/config-usage-example.md).
+- Services can receive configuration through factories, runtime parameters, or a registered configuration object, but the container does not have a separate configuration array. See [Passing configuration to services](docs/content/config-usage-example.md).
 - Invokable objects can be wrapped in a closure, but objects with `__invoke()` are not treated as factories automatically.
 - The container uses normal PHP code for configuration. It does not provide attributes or a special configuration language.
 - CI generates a test coverage report for `Container.php`; the badge remains static.
@@ -156,7 +157,7 @@ add_action( 'plugins_loaded', function () use ( $container ) {
 
 More examples:
 
-- [Passing configuration to services](DOC/config-usage-example.md)
+- [Passing configuration to services](docs/content/config-usage-example.md)
 - [Complex WordPress plugin example](DOC/wordpress-plugin.md)
 
 
