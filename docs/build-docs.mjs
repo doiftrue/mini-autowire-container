@@ -12,8 +12,8 @@ const endMarker = '<!-- DOCS:END -->';
 
 const sources = [
 	{ file: 'README.md', type: 'overview' },
-	{ file: 'docs/content/config-usage-example.md', type: 'guide', title: 'Configuration', id: 'configuration' },
 	{ file: 'docs/content/wordpress-plugin.md', type: 'guide', title: 'WordPress plugin', id: 'wordpress-plugin' },
+	{ file: 'docs/content/config-usage-example.md', type: 'guide', title: 'Configuration', id: 'configuration' },
 ];
 
 const usedIds = new Map();

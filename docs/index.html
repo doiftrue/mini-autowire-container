@@ -139,7 +139,8 @@ $service = $container-&gt;get( Service::class );</code></pre>
 			<article class="docs-article" id="docs-content">
 				<!-- Generated from README.md and docs/*.md by page/build-docs.mjs. -->
 				<!-- DOCS:START -->
-<section class="doc-source doc-overview" data-doc-source="README.md"><h2 id="litewire-di-container">LiteWire DI Container<a class="heading-anchor" href="#litewire-di-container" aria-label="Link to this section">#</a></h2>
+<section class="doc-source doc-overview" data-doc-source="README.md"><p><a href="https://github.com/doiftrue/litewire-di/actions/workflows/ci.yml" target="_blank" rel="noreferrer"><img src="https://github.com/doiftrue/litewire-di/actions/workflows/ci.yml/badge.svg" alt="Last CI" loading="lazy"></a></p>
+<h2 id="litewire-di-container">LiteWire DI Container<a class="heading-anchor" href="#litewire-di-container" aria-label="Link to this section">#</a></h2>
 <p>A tiny single-file autowire DI container for PHP and WordPress applications.</p>
 <p>See: https://doiftrue.github.io/litewire-di/</p>
 <h3 id="compatibility">Compatibility<a class="heading-anchor" href="#compatibility" aria-label="Link to this section">#</a></h3>
@@ -432,211 +433,6 @@ $mailer = $container-&gt;make( Mailer::class, [
 <li>Circular dependencies are detected and reported with the resolution chain.</li>
 <li>Invalid or unsupported definitions and parameters fail with explicit exceptions.</li>
 </ol></section>
-<section class="doc-source doc-guide" data-doc-source="docs/content/config-usage-example.md"><header class="guide-header"><p class="section-label">Extended guide</p><h2 id="configuration">Configuration<a class="heading-anchor" href="#configuration" aria-label="Link to this guide">#</a></h2><a class="source-link" href="https://github.com/doiftrue/litewire-di/blob/main/docs/content/config-usage-example.md" target="_blank" rel="noreferrer">View Markdown source ↗</a></header><p>Configuration is a set of values that changes how an application works without changing its code.</p>
-<p>Configuration helps to:</p>
-<ul>
-<li>keep changeable settings separate from application logic;</li>
-<li>use different values in production, development, and tests;</li>
-<li>avoid global variables and direct <code>getenv()</code> calls inside services.</li>
-</ul>
-<p>Each container handles configuration differently. The examples below show the usual approach for each container.</p>
-<p>ALl examples use PHP 8.2 syntax.</p>
-<h3 id="service-used-in-all-examples">Service used in all examples<a class="heading-anchor" href="#service-used-in-all-examples" aria-label="Link to this section">#</a></h3>
-<p>All examples below will create the same service:</p>
-<div class="code-block"><div class="code-label"><span>php</span><button class="copy-code" type="button">Copy</button></div><pre><code class="language-php">final class SomeService {
-	public function __construct(
-		private readonly string $db_host,
-		private readonly int $db_port,
-		private readonly string $db_name,
-		private readonly string $api_url,
-		private readonly int $api_timeout,
-		private readonly string $cache_dir,
-		private readonly bool $debug,
-	) {}
-}</code></pre></div>
-<h3 id="litewire-di">LiteWire DI<a class="heading-anchor" href="#litewire-di" aria-label="Link to this section">#</a></h3>
-<p>LiteWire DI can only store objects (not individual config values). Therefore, <code>config.php</code> creates and returns a small config object:</p>
-<p>file: <code>config.php</code></p>
-<div class="code-block"><div class="code-label"><span>php</span><button class="copy-code" type="button">Copy</button></div><pre><code class="language-php">final readonly class AppConfig {
-	public function __construct(
-		public string $db_host,
-		public int $db_port,
-		public string $db_name,
-		public string $api_url,
-		public int $api_timeout,
-		public string $cache_dir,
-		public bool $debug,
-	) {}
-}
-
-return new AppConfig(
-	db_host: 'localhost',
-	db_port: 3306,
-	db_name: 'my_application',
-	api_url: 'https://api.example.com',
-	api_timeout: 10,
-	cache_dir: __DIR__ . '/var/cache',
-	debug: true,
-);</code></pre></div>
-<p>The bootstrap file registers the configuration object. A factory takes <code>AppConfig</code> and passes its values to <code>SomeService</code>:</p>
-<p>file: <code>bootstrap.php</code></p>
-<div class="code-block"><div class="code-label"><span>php</span><button class="copy-code" type="button">Copy</button></div><pre><code class="language-php">$container = new Container();
-$config = require __DIR__ . '/config.php';
-
-$container-&gt;set( AppConfig::class, $config );
-$container-&gt;set( SomeService::class, static function ( AppConfig $config ) {
-	return new SomeService(
-		db_host: $config-&gt;db_host,
-		db_port: $config-&gt;db_port,
-		db_name: $config-&gt;db_name,
-		api_url: $config-&gt;api_url,
-		api_timeout: $config-&gt;api_timeout,
-		cache_dir: $config-&gt;cache_dir,
-		debug: $config-&gt;debug,
-	);
-} );
-
-$some_service = $container-&gt;get( SomeService::class );</code></pre></div>
-<aside class="callout info"><strong>Info</strong><p><code>AppConfig</code> contains values but no application logic. It is <code>readonly</code>, so services cannot accidentally change the settings after startup. The class and its values are both visible in one file.</p></aside>
-<h3 id="php-di">PHP-DI<a class="heading-anchor" href="#php-di" aria-label="Link to this section">#</a></h3>
-<p>PHP-DI can store values under string IDs such as <code>database.host</code> and <code>app.debug</code>. It can pass those values directly to the service constructor.</p>
-<p>The PHP-DI definition file contains both the values and instructions that connect each value to a constructor argument:</p>
-<p>file: <code>config.php</code></p>
-<div class="code-block"><div class="code-label"><span>php</span><button class="copy-code" type="button">Copy</button></div><pre><code class="language-php">use function DI\autowire;
-use function DI\get;
-
-return [
-	'database.host' =&gt; 'localhost',
-	'database.port' =&gt; 3306,
-	'database.name' =&gt; 'my_application',
-	'api.url' =&gt; 'https://api.example.com',
-	'api.timeout' =&gt; 10,
-	'cache.directory' =&gt; __DIR__ . '/var/cache',
-	'app.debug' =&gt; true,
-
-	SomeService::class =&gt; autowire()
-		-&gt;constructorParameter( 'db_host', get( 'database.host' ) )
-		-&gt;constructorParameter( 'db_port', get( 'database.port' ) )
-		-&gt;constructorParameter( 'db_name', get( 'database.name' ) )
-		-&gt;constructorParameter( 'api_url', get( 'api.url' ) )
-		-&gt;constructorParameter( 'api_timeout', get( 'api.timeout' ) )
-		-&gt;constructorParameter( 'cache_dir', get( 'cache.directory' ) )
-		-&gt;constructorParameter( 'debug', get( 'app.debug' ) ),
-];</code></pre></div>
-<p>file: <code>bootstrap.php</code></p>
-<div class="code-block"><div class="code-label"><span>php</span><button class="copy-code" type="button">Copy</button></div><pre><code class="language-php">$builder = new DI\ContainerBuilder();
-$builder-&gt;addDefinitions( __DIR__ . '/config.php' );
-$container = $builder-&gt;build();
-
-$some_service = $container-&gt;get( SomeService::class );</code></pre></div>
-<p>PHP-DI resolves every <code>get()</code> reference and passes the corresponding value to <code>SomeService</code>. The container owns both the scalar values and the rules for injecting them.</p>
-<h3 id="symfony-di">Symfony DI<a class="heading-anchor" href="#symfony-di" aria-label="Link to this section">#</a></h3>
-<p>Symfony stores scalar values as container parameters. A service can reference those parameters in <code>services.yaml</code>:</p>
-<p>file: <code>config/services.yaml</code></p>
-<div class="code-block"><div class="code-label"><span>yaml</span><button class="copy-code" type="button">Copy</button></div><pre><code class="language-yaml">parameters:
-    database.host: 'localhost'
-    database.port: 3306
-    database.name: 'my_application'
-    api.url: 'https://api.example.com'
-    api.timeout: 10
-    cache.directory: '%kernel.project_dir%/var/cache'
-    app.debug: true
-
-services:
-    SomeService:
-        public: true
-        arguments:
-            $db_host: '%database.host%'
-            $db_port: '%database.port%'
-            $db_name: '%database.name%'
-            $api_url: '%api.url%'
-            $api_timeout: '%api.timeout%'
-            $cache_dir: '%cache.directory%'
-            $debug: '%app.debug%'</code></pre></div>
-<p>file: <code>bootstrap.php</code></p>
-<div class="code-block"><div class="code-label"><span>php</span><button class="copy-code" type="button">Copy</button></div><pre><code class="language-php">use Symfony\Component\Config\FileLocator;
-use Symfony\Component\DependencyInjection\ContainerBuilder;
-use Symfony\Component\DependencyInjection\Loader\YamlFileLoader;
-
-$container = new ContainerBuilder();
-$container-&gt;setParameter( 'kernel.project_dir', __DIR__ );
-
-$loader = new YamlFileLoader(
-	$container,
-	new FileLocator( __DIR__ . '/config' )
-);
-$loader-&gt;load( 'services.yaml' );
-
-$container-&gt;compile();
-
-$some_service = $container-&gt;get( SomeService::class );</code></pre></div>
-<aside class="callout info"><strong>Info</strong><p>The bootstrap code creates the container, loads <code>services.yaml</code>, and compiles all definitions.  Symfony resolves every <code>%parameter%</code> reference while compiling the container.  <code>public: true</code> is used only so this small example can call <code>get()</code> directly. Application services are normally private and injected into other services.</p></aside>
-<h3 id="laravel-container">Laravel Container<a class="heading-anchor" href="#laravel-container" aria-label="Link to this section">#</a></h3>
-<p>Laravel stores application settings in files inside the <code>config</code> directory:</p>
-<p>file: <code>config/some_service.php</code></p>
-<div class="code-block"><div class="code-label"><span>php</span><button class="copy-code" type="button">Copy</button></div><pre><code class="language-php">return [
-	'db_host' =&gt; 'localhost',
-	'db_port' =&gt; 3306,
-	'db_name' =&gt; 'my_application',
-	'api_url' =&gt; 'https://api.example.com',
-	'api_timeout' =&gt; 10,
-	'cache_dir' =&gt; storage_path( 'framework/cache' ),
-	'debug' =&gt; true,
-];</code></pre></div>
-<p>A service provider uses contextual binding to connect each constructor argument to a configuration value:</p>
-<p>file: <code>app/Providers/SomeServiceProvider.php</code></p>
-<div class="code-block"><div class="code-label"><span>php</span><button class="copy-code" type="button">Copy</button></div><pre><code class="language-php">use Illuminate\Support\ServiceProvider;
-
-final class SomeServiceProvider extends ServiceProvider {
-	public function register(): void {
-		$this-&gt;app-&gt;when( SomeService::class )
-			-&gt;needs( '$db_host' )
-			-&gt;giveConfig( 'some_service.db_host' );
-
-		$this-&gt;app-&gt;when( SomeService::class )
-			-&gt;needs( '$db_port' )
-			-&gt;giveConfig( 'some_service.db_port' );
-
-		$this-&gt;app-&gt;when( SomeService::class )
-			-&gt;needs( '$db_name' )
-			-&gt;giveConfig( 'some_service.db_name' );
-
-		$this-&gt;app-&gt;when( SomeService::class )
-			-&gt;needs( '$api_url' )
-			-&gt;giveConfig( 'some_service.api_url' );
-
-		$this-&gt;app-&gt;when( SomeService::class )
-			-&gt;needs( '$api_timeout' )
-			-&gt;giveConfig( 'some_service.api_timeout' );
-
-		$this-&gt;app-&gt;when( SomeService::class )
-			-&gt;needs( '$cache_dir' )
-			-&gt;giveConfig( 'some_service.cache_dir' );
-
-		$this-&gt;app-&gt;when( SomeService::class )
-			-&gt;needs( '$debug' )
-			-&gt;giveConfig( 'some_service.debug' );
-	}
-}</code></pre></div>
-<p>The bootstrap code creates the application container, loads the configuration, and registers the provider:</p>
-<p>file: <code>bootstrap.php</code></p>
-<div class="code-block"><div class="code-label"><span>php</span><button class="copy-code" type="button">Copy</button></div><pre><code class="language-php">use Illuminate\Config\Repository;
-use Illuminate\Foundation\Application;
-
-$app = new Application( __DIR__ );
-
-$app-&gt;instance( 'config', new Repository( [
-	'some_service' =&gt; require __DIR__ . '/config/some_service.php',
-] ) );
-
-$app-&gt;register( SomeServiceProvider::class );
-
-$some_service = $app-&gt;make( SomeService::class );</code></pre></div>
-<p><code>$app-&gt;register()</code> creates the provider and calls its <code>register()</code> method. Laravel then reads the configured values and injects them when <code>$app-&gt;make()</code> resolves <code>SomeService</code>.</p>
-<h3 id="are-these-approaches-equivalent">Are these approaches equivalent?<a class="heading-anchor" href="#are-these-approaches-equivalent" aria-label="Link to this section">#</a></h3>
-<p>They create the same <code>SomeService</code> with the same settings. PHP-DI stores individual values and injects them directly. LiteWire DI stores one <code>AppConfig</code> object and uses a factory to pass its values to the service.</p>
-<p>The container features are also not equivalent. PHP-DI stores scalar entries and can reference, combine, and override definitions. LiteWire DI only stores the finished <code>AppConfig</code> object. Loading, combining, validating, or overriding the original values remains application code.</p>
-<p>For a small application, one <code>AppConfig</code> object is often enough. If it becomes too large, split it into focused objects such as <code>DatabaseConfig</code>, <code>ApiConfig</code>, and <code>CacheConfig</code> and register each object in the same way.</p></section>
 <section class="doc-source doc-guide" data-doc-source="docs/content/wordpress-plugin.md"><header class="guide-header"><p class="section-label">Extended guide</p><h2 id="wordpress-plugin">WordPress plugin<a class="heading-anchor" href="#wordpress-plugin" aria-label="Link to this guide">#</a></h2><a class="source-link" href="https://github.com/doiftrue/litewire-di/blob/main/docs/content/wordpress-plugin.md" target="_blank" rel="noreferrer">View Markdown source ↗</a></header><p>This example shows a small plugin with an admin settings page and an admin notice. It uses a container to connect the plugin classes.</p>
 <p>The example is intentionally simple. It works as a useful starting structure, not as a complete production plugin.</p>
 <h3 id="why-use-a-container-in-a-plugin">Why use a container in a plugin?<a class="heading-anchor" href="#why-use-a-container-in-a-plugin" aria-label="Link to this section">#</a></h3>
@@ -924,6 +720,211 @@ final class Plugin {
 $logger = new FakeLogger();
 $page = new SettingsPage( $config, $logger );</code></pre></div>
 <p>This is the main reason to keep dependencies in constructors: they are easy to see and easy to replace in tests.</p></section>
+<section class="doc-source doc-guide" data-doc-source="docs/content/config-usage-example.md"><header class="guide-header"><p class="section-label">Extended guide</p><h2 id="configuration">Configuration<a class="heading-anchor" href="#configuration" aria-label="Link to this guide">#</a></h2><a class="source-link" href="https://github.com/doiftrue/litewire-di/blob/main/docs/content/config-usage-example.md" target="_blank" rel="noreferrer">View Markdown source ↗</a></header><p>Configuration is a set of values that changes how an application works without changing its code.</p>
+<p>Configuration helps to:</p>
+<ul>
+<li>keep changeable settings separate from application logic;</li>
+<li>use different values in production, development, and tests;</li>
+<li>avoid global variables and direct <code>getenv()</code> calls inside services.</li>
+</ul>
+<p>Each container handles configuration differently. The examples below show the usual approach for each container.</p>
+<p>ALl examples use PHP 8.2 syntax.</p>
+<h3 id="service-used-in-all-examples">Service used in all examples<a class="heading-anchor" href="#service-used-in-all-examples" aria-label="Link to this section">#</a></h3>
+<p>All examples below will create the same service:</p>
+<div class="code-block"><div class="code-label"><span>php</span><button class="copy-code" type="button">Copy</button></div><pre><code class="language-php">final class SomeService {
+	public function __construct(
+		private readonly string $db_host,
+		private readonly int $db_port,
+		private readonly string $db_name,
+		private readonly string $api_url,
+		private readonly int $api_timeout,
+		private readonly string $cache_dir,
+		private readonly bool $debug,
+	) {}
+}</code></pre></div>
+<h3 id="litewire-di">LiteWire DI<a class="heading-anchor" href="#litewire-di" aria-label="Link to this section">#</a></h3>
+<p>LiteWire DI can only store objects (not individual config values). Therefore, <code>config.php</code> creates and returns a small config object:</p>
+<p>file: <code>config.php</code></p>
+<div class="code-block"><div class="code-label"><span>php</span><button class="copy-code" type="button">Copy</button></div><pre><code class="language-php">final readonly class AppConfig {
+	public function __construct(
+		public string $db_host,
+		public int $db_port,
+		public string $db_name,
+		public string $api_url,
+		public int $api_timeout,
+		public string $cache_dir,
+		public bool $debug,
+	) {}
+}
+
+return new AppConfig(
+	db_host: 'localhost',
+	db_port: 3306,
+	db_name: 'my_application',
+	api_url: 'https://api.example.com',
+	api_timeout: 10,
+	cache_dir: __DIR__ . '/var/cache',
+	debug: true,
+);</code></pre></div>
+<p>The bootstrap file registers the configuration object. A factory takes <code>AppConfig</code> and passes its values to <code>SomeService</code>:</p>
+<p>file: <code>bootstrap.php</code></p>
+<div class="code-block"><div class="code-label"><span>php</span><button class="copy-code" type="button">Copy</button></div><pre><code class="language-php">$container = new Container();
+$config = require __DIR__ . '/config.php';
+
+$container-&gt;set( AppConfig::class, $config );
+$container-&gt;set( SomeService::class, static function ( AppConfig $config ) {
+	return new SomeService(
+		db_host: $config-&gt;db_host,
+		db_port: $config-&gt;db_port,
+		db_name: $config-&gt;db_name,
+		api_url: $config-&gt;api_url,
+		api_timeout: $config-&gt;api_timeout,
+		cache_dir: $config-&gt;cache_dir,
+		debug: $config-&gt;debug,
+	);
+} );
+
+$some_service = $container-&gt;get( SomeService::class );</code></pre></div>
+<aside class="callout info"><strong>Info</strong><p><code>AppConfig</code> contains values but no application logic. It is <code>readonly</code>, so services cannot accidentally change the settings after startup. The class and its values are both visible in one file.</p></aside>
+<h3 id="php-di">PHP-DI<a class="heading-anchor" href="#php-di" aria-label="Link to this section">#</a></h3>
+<p>PHP-DI can store values under string IDs such as <code>database.host</code> and <code>app.debug</code>. It can pass those values directly to the service constructor.</p>
+<p>The PHP-DI definition file contains both the values and instructions that connect each value to a constructor argument:</p>
+<p>file: <code>config.php</code></p>
+<div class="code-block"><div class="code-label"><span>php</span><button class="copy-code" type="button">Copy</button></div><pre><code class="language-php">use function DI\autowire;
+use function DI\get;
+
+return [
+	'database.host' =&gt; 'localhost',
+	'database.port' =&gt; 3306,
+	'database.name' =&gt; 'my_application',
+	'api.url' =&gt; 'https://api.example.com',
+	'api.timeout' =&gt; 10,
+	'cache.directory' =&gt; __DIR__ . '/var/cache',
+	'app.debug' =&gt; true,
+
+	SomeService::class =&gt; autowire()
+		-&gt;constructorParameter( 'db_host', get( 'database.host' ) )
+		-&gt;constructorParameter( 'db_port', get( 'database.port' ) )
+		-&gt;constructorParameter( 'db_name', get( 'database.name' ) )
+		-&gt;constructorParameter( 'api_url', get( 'api.url' ) )
+		-&gt;constructorParameter( 'api_timeout', get( 'api.timeout' ) )
+		-&gt;constructorParameter( 'cache_dir', get( 'cache.directory' ) )
+		-&gt;constructorParameter( 'debug', get( 'app.debug' ) ),
+];</code></pre></div>
+<p>file: <code>bootstrap.php</code></p>
+<div class="code-block"><div class="code-label"><span>php</span><button class="copy-code" type="button">Copy</button></div><pre><code class="language-php">$builder = new DI\ContainerBuilder();
+$builder-&gt;addDefinitions( __DIR__ . '/config.php' );
+$container = $builder-&gt;build();
+
+$some_service = $container-&gt;get( SomeService::class );</code></pre></div>
+<p>PHP-DI resolves every <code>get()</code> reference and passes the corresponding value to <code>SomeService</code>. The container owns both the scalar values and the rules for injecting them.</p>
+<h3 id="symfony-di">Symfony DI<a class="heading-anchor" href="#symfony-di" aria-label="Link to this section">#</a></h3>
+<p>Symfony stores scalar values as container parameters. A service can reference those parameters in <code>services.yaml</code>:</p>
+<p>file: <code>config/services.yaml</code></p>
+<div class="code-block"><div class="code-label"><span>yaml</span><button class="copy-code" type="button">Copy</button></div><pre><code class="language-yaml">parameters:
+    database.host: 'localhost'
+    database.port: 3306
+    database.name: 'my_application'
+    api.url: 'https://api.example.com'
+    api.timeout: 10
+    cache.directory: '%kernel.project_dir%/var/cache'
+    app.debug: true
+
+services:
+    SomeService:
+        public: true
+        arguments:
+            $db_host: '%database.host%'
+            $db_port: '%database.port%'
+            $db_name: '%database.name%'
+            $api_url: '%api.url%'
+            $api_timeout: '%api.timeout%'
+            $cache_dir: '%cache.directory%'
+            $debug: '%app.debug%'</code></pre></div>
+<p>file: <code>bootstrap.php</code></p>
+<div class="code-block"><div class="code-label"><span>php</span><button class="copy-code" type="button">Copy</button></div><pre><code class="language-php">use Symfony\Component\Config\FileLocator;
+use Symfony\Component\DependencyInjection\ContainerBuilder;
+use Symfony\Component\DependencyInjection\Loader\YamlFileLoader;
+
+$container = new ContainerBuilder();
+$container-&gt;setParameter( 'kernel.project_dir', __DIR__ );
+
+$loader = new YamlFileLoader(
+	$container,
+	new FileLocator( __DIR__ . '/config' )
+);
+$loader-&gt;load( 'services.yaml' );
+
+$container-&gt;compile();
+
+$some_service = $container-&gt;get( SomeService::class );</code></pre></div>
+<aside class="callout info"><strong>Info</strong><p>The bootstrap code creates the container, loads <code>services.yaml</code>, and compiles all definitions.  Symfony resolves every <code>%parameter%</code> reference while compiling the container.  <code>public: true</code> is used only so this small example can call <code>get()</code> directly. Application services are normally private and injected into other services.</p></aside>
+<h3 id="laravel-container">Laravel Container<a class="heading-anchor" href="#laravel-container" aria-label="Link to this section">#</a></h3>
+<p>Laravel stores application settings in files inside the <code>config</code> directory:</p>
+<p>file: <code>config/some_service.php</code></p>
+<div class="code-block"><div class="code-label"><span>php</span><button class="copy-code" type="button">Copy</button></div><pre><code class="language-php">return [
+	'db_host' =&gt; 'localhost',
+	'db_port' =&gt; 3306,
+	'db_name' =&gt; 'my_application',
+	'api_url' =&gt; 'https://api.example.com',
+	'api_timeout' =&gt; 10,
+	'cache_dir' =&gt; storage_path( 'framework/cache' ),
+	'debug' =&gt; true,
+];</code></pre></div>
+<p>A service provider uses contextual binding to connect each constructor argument to a configuration value:</p>
+<p>file: <code>app/Providers/SomeServiceProvider.php</code></p>
+<div class="code-block"><div class="code-label"><span>php</span><button class="copy-code" type="button">Copy</button></div><pre><code class="language-php">use Illuminate\Support\ServiceProvider;
+
+final class SomeServiceProvider extends ServiceProvider {
+	public function register(): void {
+		$this-&gt;app-&gt;when( SomeService::class )
+			-&gt;needs( '$db_host' )
+			-&gt;giveConfig( 'some_service.db_host' );
+
+		$this-&gt;app-&gt;when( SomeService::class )
+			-&gt;needs( '$db_port' )
+			-&gt;giveConfig( 'some_service.db_port' );
+
+		$this-&gt;app-&gt;when( SomeService::class )
+			-&gt;needs( '$db_name' )
+			-&gt;giveConfig( 'some_service.db_name' );
+
+		$this-&gt;app-&gt;when( SomeService::class )
+			-&gt;needs( '$api_url' )
+			-&gt;giveConfig( 'some_service.api_url' );
+
+		$this-&gt;app-&gt;when( SomeService::class )
+			-&gt;needs( '$api_timeout' )
+			-&gt;giveConfig( 'some_service.api_timeout' );
+
+		$this-&gt;app-&gt;when( SomeService::class )
+			-&gt;needs( '$cache_dir' )
+			-&gt;giveConfig( 'some_service.cache_dir' );
+
+		$this-&gt;app-&gt;when( SomeService::class )
+			-&gt;needs( '$debug' )
+			-&gt;giveConfig( 'some_service.debug' );
+	}
+}</code></pre></div>
+<p>The bootstrap code creates the application container, loads the configuration, and registers the provider:</p>
+<p>file: <code>bootstrap.php</code></p>
+<div class="code-block"><div class="code-label"><span>php</span><button class="copy-code" type="button">Copy</button></div><pre><code class="language-php">use Illuminate\Config\Repository;
+use Illuminate\Foundation\Application;
+
+$app = new Application( __DIR__ );
+
+$app-&gt;instance( 'config', new Repository( [
+	'some_service' =&gt; require __DIR__ . '/config/some_service.php',
+] ) );
+
+$app-&gt;register( SomeServiceProvider::class );
+
+$some_service = $app-&gt;make( SomeService::class );</code></pre></div>
+<p><code>$app-&gt;register()</code> creates the provider and calls its <code>register()</code> method. Laravel then reads the configured values and injects them when <code>$app-&gt;make()</code> resolves <code>SomeService</code>.</p>
+<h3 id="are-these-approaches-equivalent">Are these approaches equivalent?<a class="heading-anchor" href="#are-these-approaches-equivalent" aria-label="Link to this section">#</a></h3>
+<p>They create the same <code>SomeService</code> with the same settings. PHP-DI stores individual values and injects them directly. LiteWire DI stores one <code>AppConfig</code> object and uses a factory to pass its values to the service.</p>
+<p>The container features are also not equivalent. PHP-DI stores scalar entries and can reference, combine, and override definitions. LiteWire DI only stores the finished <code>AppConfig</code> object. Loading, combining, validating, or overriding the original values remains application code.</p>
+<p>For a small application, one <code>AppConfig</code> object is often enough. If it becomes too large, split it into focused objects such as <code>DatabaseConfig</code>, <code>ApiConfig</code>, and <code>CacheConfig</code> and register each object in the same way.</p></section>
 				<!-- DOCS:END -->
 			</article>
 
@@ -931,8 +932,8 @@ $page = new SettingsPage( $config, $logger );</code></pre></div>
 				<button class="sidebar-close" type="button" aria-label="Close documentation navigation">×</button>
 				<nav class="document-tabs" aria-label="Documentation pages">
 					<a class="is-active" href="#litewire-di-container" data-document="README.md"><span>01</span>Overview</a>
-					<a href="#configuration" data-document="docs/content/config-usage-example.md"><span>02</span>Configuration</a>
-					<a href="#wordpress-plugin" data-document="docs/content/wordpress-plugin.md"><span>03</span>WordPress plugin</a>
+					<a href="#wordpress-plugin" data-document="docs/content/wordpress-plugin.md"><span>02</span>WordPress plugin</a>
+					<a href="#configuration" data-document="docs/content/config-usage-example.md"><span>03</span>Configuration</a>
 				</nav>
 				<div class="page-toc-sections">
 					<p>On this page</p>
