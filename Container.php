@@ -231,6 +231,7 @@ class Container {
 
 			// $def is named parameters for the constructor.
 			if ( is_array( $def ) ) {
+				/** @var class-string $id */
 				return $this->resolve_class( $id, $def );
 			}
 
