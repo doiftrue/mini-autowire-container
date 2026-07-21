@@ -2,7 +2,8 @@ define php_run
 	@mkdir -p "$(CURDIR)/tmp"
 	@printf '%s\n' 'opcache.enable=1' 'opcache.enable_cli=1' > "$(CURDIR)/tmp/opcache.ini"
 	@status=0; \
-	docker run --rm $(1)  --name UNITEST_WP_COPY__php  --user 1000:1000  -w /app \
+	docker run --rm $(1) --name LITEWIRE_DI__php -w /app \
+		--user "$$(id -u):$$(id -g)" \
 		-v "$(CURDIR):/app" \
 		-v "$(CURDIR)/tmp/opcache.ini:/usr/local/etc/php/conf.d/opcache.ini:ro" \
 		chialab/php-pcov:8.5 sh -c "$2" || status=$$?; \
