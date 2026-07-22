@@ -1,102 +1,83 @@
-# Configuration and factories
+# Configuring services
 
-LiteWire DI stores objects, not standalone scalar entries. Keep configuration in application code, then supply it through a typed object, named parameters, or a factory.
+Most concrete classes need no configuration. If their constructor contains only concrete class types, LiteWire DI autowires them automatically.
 
-## Register a configuration object
+Use `set()` only when the container cannot determine a value by itself:
 
-This is usually the clearest approach when several services share related values.
+| Situation | What to register |
+| --- | --- |
+| An interface needs an implementation | A class binding |
+| A constructor needs a scalar value | Named parameters |
+| Creation needs custom logic | A closure factory |
+| The object already exists | The object itself |
+
+## Bind an interface
+
+The container cannot guess which class implements an interface. Choose it once during application startup:
 
 ```php
-final class AppConfig {
-	public $cacheDirectory;
+interface Logger {
+	public function log( string $message ): void;
+}
 
-	public function __construct( string $cacheDirectory ) {
-		$this->cacheDirectory = $cacheDirectory;
+final class ErrorLogLogger implements Logger {
+	public function log( string $message ): void {
+		error_log( $message );
 	}
 }
 
-$container->set( AppConfig::class, new AppConfig( __DIR__ . '/var/cache' ) );
+$container->set( Logger::class, ErrorLogLogger::class );
 ```
 
-Any service with an `AppConfig` constructor argument can now be autowired.
+Classes can now request `Logger` in their constructor, and the container will inject `ErrorLogLogger`.
 
-## Configure one concrete class
+## Provide a scalar value
 
-Pass an associative array whose keys exactly match constructor parameter names. This form only works for an instantiable class, not an interface.
+Class dependencies are autowired, but values such as paths, URLs, and API keys must come from your application. Register them by constructor parameter name:
 
 ```php
+final class ReportWriter {
+	public function __construct(
+		private readonly Logger $logger,
+		private readonly string $outputDirectory,
+	) {}
+}
+
 $container->set( ReportWriter::class, [
-	'outputPath' => __DIR__ . '/reports',
+	'outputDirectory' => __DIR__ . '/reports',
 ] );
+
+$writer = $container->get( ReportWriter::class );
 ```
 
-Missing object dependencies are still autowired. `make( ReportWriter::class, [ 'outputPath' => '/tmp' ] )` uses `/tmp` for that call without changing the configured default.
+`Logger` is still autowired from the interface binding. Only the value the container cannot know is supplied explicitly.
 
-## Bind an interface or use custom construction
+## Use a factory for custom creation
 
-An interface needs an implementation choice. A closure factory is appropriate when construction also requires scalar values or custom logic.
+Use a closure when selecting an implementation also requires scalar values or custom setup. This is an alternative to the `ErrorLogLogger` binding above; choose one during startup before resolving `ReportWriter`:
 
 ```php
-$container->set( LoggerInterface::class, static function ( AppConfig $config ) {
-	return new FileLogger( $config->cacheDirectory . '/application.log' );
+final class FileLogger implements Logger {
+	public function __construct(
+		private readonly string $file,
+	) {}
+
+	public function log( string $message ): void {
+		file_put_contents( $this->file, $message . PHP_EOL, FILE_APPEND );
+	}
+}
+
+$container->set( Logger::class, static function () {
+	return new FileLogger( __DIR__ . '/logs/application.log' );
 } );
 ```
 
-Factory parameters are autowired just like constructor parameters, and the factory must return an object.
+The factory must return an object. Its class-typed parameters are autowired, so it can request other services when needed.
 
-::: warning
-Configure the container before calling `get()`. Changing a definition later does not update already-created objects that depend on the previous one.
+Configure services before the first `get()`. Replacing a definition later does not rebuild objects that have already received the old dependency.
+
+---
+
+::: info More configuration approaches
+See the [configuration cookbook](/guide/full-configuration) for configuration objects, reusable settings, array mapping, factories, and comparisons with other containers.
 :::
-
-## Choose a configuration pattern
-
-All examples in this guide use PHP 7.4-compatible syntax.
-
-### One typed configuration object
-
-Use one object when related values are used in several places. It keeps service constructors typed and avoids calls to `getenv()` or globals throughout the application.
-
-```php
-final class DatabaseConfig {
-	public $host;
-	public $port;
-
-	public function __construct( string $host, int $port ) {
-		$this->host = $host;
-		$this->port = $port;
-	}
-}
-
-$container->set( DatabaseConfig::class, new DatabaseConfig( 'localhost', 3306 ) );
-```
-
-### Focused configuration objects
-
-When one configuration object becomes a bag of unrelated settings, split it by responsibility: for example, `DatabaseConfig`, `MailConfig`, and `CacheConfig`. A service should request only the configuration it uses.
-
-### Named parameters for one concrete service
-
-Use this concise form when values belong only to one instantiable class. Parameter names are coupled to that constructor, and values are checked at runtime.
-
-```php
-$container->set( Connection::class, [
-	'host' => 'localhost',
-	'port' => 3306,
-] );
-```
-
-### Map a loaded array into an object
-
-If an application already returns an array from `config.php`, validate or transform it in bootstrap code and then construct a typed configuration object. This is safer for services than passing the array throughout the application.
-
-```php
-$values = require __DIR__ . '/config.php';
-$container->set( DatabaseConfig::class, new DatabaseConfig(
-	$values['db_host'],
-	$values['db_port']
-) );
-```
-
-### Use a factory when construction has logic
-
-Factories are best for selecting an interface implementation, building a third-party object, or combining scalar values with custom construction. Do not use an invokable object directly: wrap it in a closure, because only closures are treated as factories.

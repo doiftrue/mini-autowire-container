@@ -85,7 +85,7 @@ final class Logger {
 
 final class Service {
 	public function __construct(
-		private Logger $logger
+		private readonly Logger $logger,
 	) {}
 
 	public function run(): void {
@@ -113,16 +113,10 @@ Pass an associative array to register named constructor parameters for an instan
 
 ```php
 final class Plugin {
-	private string $main_file;
-	private Options $options;
-
 	public function __construct(
-		string $main_file,
-		Options $options
-	) {
-		$this->main_file = $main_file;
-		$this->options = $options;
-	}
+		private readonly string $main_file,
+		private readonly Options $options,
+	) {}
 }
 
 $container->set( Plugin::class, [
@@ -154,8 +148,8 @@ $fresh_mailer = $container->make( Mailer::class );
 ```php
 final class Mailer {
 	public function __construct(
-		private Logger $logger,
-		private string $from
+		private readonly Logger $logger,
+		private readonly string $from,
 	) {}
 }
 
@@ -172,7 +166,7 @@ Documentation
 
 - [Full documentation](https://doiftrue.github.io/litewire-di/)
 - [Configuration guide](https://doiftrue.github.io/litewire-di/guide/configuration-and-factories)
-- [WordPress plugin guide](https://doiftrue.github.io/litewire-di/guide/wordpress)
+- [WordPress plugin guide](https://doiftrue.github.io/litewire-di/guide/full-wordpress)
 - [Detailed benchmark report](benchmarks/README.md)
 
 

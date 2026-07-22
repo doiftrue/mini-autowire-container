@@ -1,23 +1,23 @@
-# Limitations and troubleshooting
+# Limitations
 
-LiteWire DI deliberately keeps its contract small. It has no compiled container, service providers, scopes, tags, standalone scalar storage, string service IDs, configuration format, or public JavaScript API.
+LiteWire DI does not include:
 
-## A required scalar cannot be resolved
+- A compiled container.
+- Complex configuration files.
+- Attributes or a special configuration language (DSL).
+- A debug mode.
+- Arbitrary string service IDs.
+- Invokable objects used directly as factories.
+- Service definitions passed through the container constructor.
+- Service providers.
+- Scopes.
+- Tags.
+- Scalar parameter storage.
+- Union or intersection type resolution.
+- Variadic parameter resolution.
 
-Give the value a default, configure the concrete class with `set()`, pass it to `make()`, use a factory, or inject a typed configuration object.
+Required scalar constructor parameters must be provided by your code through configured class parameters, a factory, `make()`, or a configuration object.
 
-## An interface cannot be resolved
+These features would make the API larger. LiteWire DI keeps one strict object model in one small PHP file.
 
-The container cannot guess an implementation. Bind it before resolving the consuming service:
-
-```php
-$container->set( LoggerInterface::class, FileLogger::class );
-```
-
-## A changed definition did not affect an existing service
-
-`get()` returns shared objects. Replacing a definition removes only the stored instance under that exact ID; it does not reconstruct other services that were already built with the old dependency. Configure services before the first `get()`, or create a new container for an isolated setup.
-
-## A circular dependency was reported
-
-Break the cycle in your application design. A service should receive the narrow dependency it needs rather than the service that eventually requests it again.
+Full PSR-11 support would require `psr/container`. LiteWire DI keeps the API style without the dependency. An optional adapter may be added later.

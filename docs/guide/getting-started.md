@@ -24,11 +24,9 @@ final class Logger {
 }
 
 final class ReportService {
-	private $logger;
-
-	public function __construct( Logger $logger ) {
-		$this->logger = $logger;
-	}
+	public function __construct(
+		private readonly Logger $logger,
+	) {}
 
 	public function generate(): void {
 		$this->logger->log( 'Report generated.' );
@@ -41,4 +39,8 @@ $container->get( ReportService::class )->generate();
 
 Neither class is registered. `get()` reflects `ReportService`, sees its `Logger` dependency, creates it, and stores the completed `ReportService` as a shared instance.
 
+---
+
+::: info Next step
 Continue with [using the container](/guide/using-the-container) to learn when to use each public method.
+:::

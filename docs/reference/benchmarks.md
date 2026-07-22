@@ -2,6 +2,19 @@
 
 These are the latest detailed LiteWire DI measurements. Timings depend on PHP, hardware, extensions, and system load; compare only runs made in an equivalent environment.
 
+## What the results mean
+
+**LiteWire DI is fast.** Resolving a small object graph for the first time added about `0.002 ms` in this benchmark.
+
+- **100 similar first-time resolutions:** roughly `0.2 ms` of container overhead.
+- **1,000 similar first-time resolutions:** roughly `2 ms`.
+- **Repeated `get()` call:** about `0.00006 ms` because the shared object is already stored.
+- **Three-level autowiring:** less than `0.003 ms` on the first resolution.
+
+Most plugins create far fewer than 1,000 services, and shared services are resolved only once. For a typical small application or WordPress plugin, the container overhead is effectively negligible.
+
+The 100- and 1,000-resolution figures are simple linear illustrations based on the measured cold overhead. Real results depend on constructor complexity, dependency depth, PHP, and hardware.
+
 ## Latest run
 
 - Date: 2026-07-06
@@ -26,10 +39,12 @@ These are the latest detailed LiteWire DI measurements. Timings depend on PHP, h
 
 `get__cold` includes reflection, dependency discovery, object construction, and storage of the shared result. `get__stored` measures a later lookup. `make()` always creates a fresh root object; its cached benchmark follows an earlier resolution in the same container.
 
-Run the current suite from the repository root:
+::: info About memory figures
+Memory peak is measured for the complete benchmark process, not as memory allocated by one container call. Do not multiply it by the number of services.
+:::
 
-```bash
-make benchmark
-```
+---
 
+::: info Additional information
 The authoritative source for the full benchmark methodology and subject descriptions is [`benchmarks/README.md`](https://github.com/doiftrue/litewire-di/blob/main/benchmarks/README.md).
+:::

@@ -25,3 +25,12 @@
 	border-color: var(--vp-c-brand-2);
 	background-color: var(--vp-c-brand-2);
 }
+
+.vp-doc table {
+	font-size: 90%;
+}
+
+.vp-doc th,
+.vp-doc td {
+	padding: 6px 8px;
+}

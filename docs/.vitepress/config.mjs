@@ -3,15 +3,20 @@ import { defineConfig } from 'vitepress';
 const guideSidebar = [
 	{ text: 'Getting started', link: '/guide/getting-started' },
 	{ text: 'Using the container', link: '/guide/using-the-container' },
-	{ text: 'Configuration and factories', link: '/guide/configuration-and-factories' },
-	{ text: 'WordPress integration', link: '/guide/wordpress' },
+	{ text: 'Configuring services', link: '/guide/configuration-and-factories' },
 ];
 
-const referenceSidebar = [
-	{ text: 'API reference', link: '/reference/api' },
-	{ text: 'Limitations and troubleshooting', link: '/reference/limitations' },
+const resourcesSidebar = [
+	{ text: 'Container comparison', link: '/reference/comparison' },
+	{ text: 'Limitations', link: '/reference/limitations' },
 	{ text: 'Benchmarks', link: '/reference/benchmarks' },
 	{ text: 'FAQ and support', link: '/reference/faq' },
+];
+
+const documentationSidebar = [
+	{ text: 'Container guide', link: '/guide/full-documentation' },
+	{ text: 'Configuration cookbook', link: '/guide/full-configuration' },
+	{ text: 'WordPress example', link: '/guide/full-wordpress' },
 ];
 
 export default defineConfig( {
@@ -25,23 +30,23 @@ export default defineConfig( {
 	],
 	themeConfig: {
 		logo: '/logo.svg',
+		outline: {
+			level: [ 2, 3 ],
+		},
 		nav: [
 			{ text: 'Guide', link: '/guide/getting-started' },
-			{ text: 'Reference', link: '/reference/api' },
+			{ text: 'Documentation', link: '/guide/full-documentation' },
 			{ text: 'Benchmarks', link: '/reference/benchmarks' },
 			{ text: 'Packagist', link: 'https://packagist.org/packages/doiftrue/litewire-di' },
 		],
 		sidebar: [
 			{ text: 'Guides', items: guideSidebar },
-			{ text: 'Reference', items: referenceSidebar },
+			{ text: 'Documentation', items: documentationSidebar },
+			{ text: 'More', items: resourcesSidebar },
 		],
 		socialLinks: [
 			{ icon: 'github', link: 'https://github.com/doiftrue/litewire-di' },
 		],
-		editLink: {
-			pattern: 'https://github.com/doiftrue/litewire-di/edit/main/docs/:path',
-			text: 'Edit this page on GitHub',
-		},
 		search: {
 			provider: 'local',
 		},

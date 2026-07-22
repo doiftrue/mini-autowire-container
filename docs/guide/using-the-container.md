@@ -57,3 +57,9 @@ $container->set( LoggerInterface::class, FileLogger::class );
 ```
 
 Replacing a definition removes the stored object for that ID. It does not rebuild services that were already created and received the old object. See [configuration and factories](/guide/configuration-and-factories) for each registration form.
+
+---
+
+::: info Full documentation
+For every supported behavior, edge case, exception, and complete example, continue to the [container guide](/guide/full-documentation).
+:::
